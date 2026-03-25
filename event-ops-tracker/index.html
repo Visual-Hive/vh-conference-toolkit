@@ -253,6 +253,54 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;display:
 </style>
 </head>
 <body>
+  <script>
+    /* Smart redirect: if opened as a local file and Docker is running, go there */
+    if (location.protocol === 'file:') {
+      (function() {
+        var DOCKER_URL = 'http://localhost:8080';
+        var healthUrl  = DOCKER_URL + '/api/local/ops_state';
+
+        /* "Docker not running" banner — shown only if file:// AND Docker is off */
+        function showDockerBanner() {
+          var banner = document.createElement('div');
+          banner.id = '_no-docker-banner';
+          banner.style.cssText = [
+            'position:sticky;top:0;z-index:9999;background:#7c3aed',
+            'color:#fff;padding:10px 20px;font:13px/1.5 system-ui,sans-serif',
+            'display:flex;align-items:center;gap:14px;box-shadow:0 2px 8px rgba(0,0,0,.3)'
+          ].join(';');
+          banner.innerHTML = [
+            '<span style="font-size:1.3em;flex-shrink:0">⚠️</span>',
+            '<span><strong>Docker isn't running</strong> — your saved data is not visible here. ',
+            'To access your saved tasks: double-click <strong>Open Ops Tracker.command</strong> ',
+            '(Mac/Linux) or <strong>Open Ops Tracker.bat</strong> (Windows), ',
+            'or open <a href="' + DOCKER_URL + '" style="color:#e9d5ff">' + DOCKER_URL + '</a> if Docker is already running.</span>',
+            '<button onclick="this.parentElement.remove()" title="Dismiss" ',
+            'style="margin-left:auto;flex-shrink:0;background:rgba(255,255,255,.2);border:none;',
+            'color:#fff;cursor:pointer;padding:4px 10px;border-radius:4px;font-size:1rem">✕</button>'
+          ].join('');
+          /* Insert as first child of body */
+          var body = document.body;
+          body.insertBefore(banner, body.firstChild);
+        }
+
+        /* Attempt health check — if Docker responds, redirect */
+        var ctrl = (typeof AbortSignal !== 'undefined' && AbortSignal.timeout)
+          ? AbortSignal.timeout(1400) : undefined;
+        fetch(healthUrl, ctrl ? { signal: ctrl } : {})
+          .then(function(r) {
+            if (r.ok) {
+              /* Docker is up — go to the real served version */
+              location.replace(DOCKER_URL);
+            } else {
+              showDockerBanner();
+            }
+          })
+          .catch(function() { showDockerBanner(); });
+      })();
+    }
+  </script>
+
 
 <div id="loading-bar"></div>
 

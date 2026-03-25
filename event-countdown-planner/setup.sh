@@ -116,5 +116,10 @@ echo ""
 echo -e "   Stop:    ${BOLD}docker compose stop${NC}"
 echo -e "   Restart: ${BOLD}docker compose up -d${NC}"
 echo ""
+echo -e "   🔖  ${BOLD}Bookmark:${NC} $URL"
+echo -e "   ↩️   ${BOLD}To reopen later:${NC} double-click ${BOLD}'Open Countdown Planner.command'${NC} (Mac/Linux)"
+echo -e "        or ${BOLD}'Open Countdown Planner.bat'${NC} (Windows)"
+echo ""
+
 if command -v open &>/dev/null; then open "$URL"
 elif command -v xdg-open &>/dev/null; then xdg-open "$URL"; fi
