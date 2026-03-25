@@ -1,0 +1,127 @@
+name: Update Latest Release
+
+# Triggers when we push a versioned tag for either tool
+on:
+  push:
+    tags:
+      - 'ops-tracker-v*'
+      - 'countdown-planner-v*'
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write   # needed to create/update releases and tags
+
+    steps:
+      - uses: actions/checkout@v4
+
+      # ── Detect which tool this tag is for ─────────────────────────────────
+      - name: Identify tool
+        id: tool
+        run: |
+          TAG="${GITHUB_REF_NAME}"
+          if [[ "$TAG" == ops-tracker-* ]]; then
+            echo "slug=ops-tracker"                                    >> $GITHUB_OUTPUT
+            echo "stable_tag=ops-tracker-latest"                       >> $GITHUB_OUTPUT
+            echo "title=🗂 Event Ops Task & Supplier Tracker"          >> $GITHUB_OUTPUT
+            echo "dir=event-ops-tracker"                               >> $GITHUB_OUTPUT
+          else
+            echo "slug=countdown-planner"                              >> $GITHUB_OUTPUT
+            echo "stable_tag=countdown-planner-latest"                 >> $GITHUB_OUTPUT
+            echo "title=📅 Event Countdown Task Generator"             >> $GITHUB_OUTPUT
+            echo "dir=event-countdown-planner"                         >> $GITHUB_OUTPUT
+          fi
+          echo "version=${TAG}"                                         >> $GITHUB_OUTPUT
+
+      # ── Move the stable floating tag to this commit ───────────────────────
+      - name: Update stable tag
+        run: |
+          git config user.name  "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git tag -f "${{ steps.tool.outputs.stable_tag }}"
+          git push -f origin "${{ steps.tool.outputs.stable_tag }}"
+
+      # ── Delete any old releases for this tool (keep releases page clean) ──
+      - name: Delete old releases for this tool
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const slug = '${{ steps.tool.outputs.slug }}';
+            const currentTag = '${{ steps.tool.outputs.version }}';
+            const stableTag = '${{ steps.tool.outputs.stable_tag }}';
+
+            const { data: releases } = await github.rest.repos.listReleases({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              per_page: 100
+            });
+
+            for (const release of releases) {
+              const t = release.tag_name;
+              // Delete any release for this tool that isn't the one we're about to create
+              if ((t.startsWith(slug) || t === stableTag) && t !== currentTag) {
+                console.log(`Deleting old release: ${t}`);
+                await github.rest.repos.deleteRelease({
+                  owner: context.repo.owner,
+                  repo: context.repo.repo,
+                  release_id: release.id
+                });
+              }
+            }
+
+      # ── Build release notes ───────────────────────────────────────────────
+      - name: Build release body
+        id: body
+        run: |
+          DIR="${{ steps.tool.outputs.dir }}"
+          VERSION="${{ steps.tool.outputs.version }}"
+          STABLE="${{ steps.tool.outputs.stable_tag }}"
+          REPO="https://github.com/${{ github.repository }}"
+
+          cat <<EOF > /tmp/release_body.md
+          ## ${{ steps.tool.outputs.title }}
+
+          **Latest version: \`${VERSION}\`**
+
+          ### 📥 Download
+          | Platform | File |
+          |----------|------|
+          | macOS / Linux | [Download ZIP (folder)](${REPO}/archive/refs/tags/${STABLE}.zip) |
+          | Windows | [Download ZIP (folder)](${REPO}/archive/refs/tags/${STABLE}.zip) |
+
+          > The download always gives you the full repo folder. Open the \`${DIR}/\` subfolder inside.
+
+          ### 🚀 Quick start
+          1. Unzip and open the \`${DIR}\` folder
+          2. **macOS/Linux:** double-click \`setup.sh\` (or right-click → Open in Terminal)
+          3. **Windows:** double-click \`setup.bat\`
+          4. Setup installs Docker and starts the app — then double-click the **Open** launcher to launch in your browser
+
+          ### 📋 Requirements
+          - [Docker Desktop](https://www.docker.com/products/docker-desktop/) (free) must be installed and running
+
+          ---
+          *Both tools live in the same repo. See the [Releases page](${REPO}/releases) for the other tool.*
+          EOF
+          echo "file=/tmp/release_body.md" >> $GITHUB_OUTPUT
+
+      # ── Create the new "latest" release for this tool ────────────────────
+      - name: Create release
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const fs = require('fs');
+            const body = fs.readFileSync('/tmp/release_body.md', 'utf8');
+
+            await github.rest.repos.createRelease({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              tag_name: '${{ steps.tool.outputs.version }}',
+              name: '${{ steps.tool.outputs.title }} — ${{ steps.tool.outputs.version }}',
+              body: body,
+              draft: false,
+              prerelease: false,
+              make_latest: 'legacy'
+            });
+            console.log('Release created for ${{ steps.tool.outputs.version }}');
