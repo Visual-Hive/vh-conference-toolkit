@@ -1,0 +1,38 @@
+name: Release — Ops Tracker
+
+on:
+  push:
+    tags:
+      - 'ops-tracker-v*'
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Package zip
+        run: |
+          cd event-ops-tracker
+          zip -r ../event-ops-tracker.zip . \
+            --exclude "*.DS_Store" \
+            --exclude "data/db.json"
+
+      - name: Create release
+        uses: softprops/action-gh-release@v2
+        with:
+          name: "Event Ops Tracker ${{ github.ref_name }}"
+          files: event-ops-tracker.zip
+          body: |
+            ## Event Ops Tracker ${{ github.ref_name }}
+
+            **No-install mode:** download, unzip, open `index.html`
+
+            **Persistent mode (recommended):** download, unzip, run `setup.sh` (Mac/Linux) or `setup.bat` (Windows)
+            — requires [Docker Desktop](https://www.docker.com/products/docker-desktop/) (free)
+
+            Data saves to `./data/db.json` on your machine. Survives Docker restarts.
+
+            See the [full README](https://github.com/Visual-Hive/vh-conference-toolkit/tree/main/event-ops-tracker#readme) for details.

@@ -1,0 +1,33 @@
+name: Release — Countdown Planner
+
+on:
+  push:
+    tags:
+      - 'countdown-planner-v*'
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Package zip
+        run: |
+          cd event-countdown-planner
+          zip -r ../event-countdown-planner.zip . --exclude "*.DS_Store"
+
+      - name: Create release
+        uses: softprops/action-gh-release@v2
+        with:
+          name: "Event Countdown Planner ${{ github.ref_name }}"
+          files: event-countdown-planner.zip
+          body: |
+            ## Event Countdown Planner ${{ github.ref_name }}
+
+            Download, unzip, open `index.html` in your browser. No install required.
+
+            Generates a week-by-week task plan from T-16 weeks to post-event. Export as template, CSV, or push tasks directly to the Ops Tracker.
+
+            See the [full README](https://github.com/Visual-Hive/vh-conference-toolkit/tree/main/event-countdown-planner#readme) for details.
