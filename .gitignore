@@ -1,0 +1,17 @@
+# User data — never commit this
+event-ops-tracker/data/db.json
+
+# OS files
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# Editor
+.vscode/
+.idea/
+
+# Environment files with secrets
+.env
+
+# Docker artifacts
+*.log

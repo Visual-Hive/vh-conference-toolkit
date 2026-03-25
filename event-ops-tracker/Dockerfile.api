@@ -1,0 +1,9 @@
+FROM node:20-alpine
+
+# Install json-server — a zero-config REST API server backed by a JSON file
+RUN npm install -g json-server@0.17.4
+
+EXPOSE 3001
+
+# Watch /data/db.json and serve it as a REST API
+CMD ["json-server", "--host", "0.0.0.0", "--port", "3001", "--watch", "/data/db.json"]

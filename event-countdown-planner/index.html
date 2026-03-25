@@ -1,0 +1,970 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Event Countdown Planner — Conference Toolkit</title>
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+html,body{height:100%}
+body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:#f1f5f9;color:#1e293b;font-size:14px;line-height:1.5;min-height:100vh}
+:root{--primary:#2563eb}
+.app-header{background:var(--primary,#2563eb);color:white;padding:.625rem 1.25rem;display:flex;justify-content:space-between;align-items:center;gap:1rem;position:sticky;top:0;z-index:50}
+.header-left{display:flex;align-items:center;gap:.75rem}
+.header-logo{height:28px;border-radius:4px}
+.header-company{font-size:.95rem;font-weight:700}
+.header-meta{font-size:.72rem;opacity:.85;margin-top:1px}
+.header-right{display:flex;align-items:center;gap:.5rem}
+.btn{display:inline-flex;align-items:center;gap:.3rem;padding:.4rem .8rem;border-radius:6px;font-size:.78rem;font-weight:600;border:none;cursor:pointer;font-family:inherit;transition:background .12s,opacity .12s,transform .1s;white-space:nowrap;line-height:1.4;text-decoration:none}
+.btn:active{transform:scale(.97)}
+.btn-primary{background:var(--primary,#2563eb);color:white}.btn-primary:hover{opacity:.88}
+.btn-secondary{background:white;color:#374151;border:1px solid #d1d5db}.btn-secondary:hover{background:#f9fafb}
+.btn-ghost{background:transparent;color:#64748b}.btn-ghost:hover{background:#f1f5f9;color:#334155}
+.btn-danger{background:#fee2e2;color:#dc2626}.btn-danger:hover{background:#fecaca}
+.btn-white{background:white;color:var(--primary,#2563eb)}.btn-white:hover{background:#f0f9ff}
+.btn-sm{padding:.3rem .6rem;font-size:.73rem}
+.btn-lg{padding:.6rem 1.25rem;font-size:.88rem}
+.container{max-width:860px;margin:0 auto;padding:1.5rem 1rem}
+.setup-card{background:white;border-radius:12px;box-shadow:0 1px 3px rgba(0,0,0,.08),0 4px 16px rgba(0,0,0,.06);overflow:hidden}
+.setup-card-header{background:var(--primary,#2563eb);color:white;padding:1.5rem;text-align:center}
+.setup-card-header h2{font-size:1.3rem;font-weight:800;margin-bottom:.25rem}
+.setup-card-header p{font-size:.82rem;opacity:.9}
+.setup-card-body{padding:1.75rem}
+.form-grid{display:grid;grid-template-columns:1fr 1fr;gap:1rem}
+.form-field{display:flex;flex-direction:column;gap:.35rem}
+.form-field.full{grid-column:1/-1}
+.form-label{font-size:.75rem;font-weight:600;color:#374151}
+.form-input,.form-select,.form-textarea{border:1px solid #d1d5db;border-radius:7px;padding:.5rem .75rem;font-size:.85rem;font-family:inherit;color:#1e293b;background:white;width:100%}
+.form-input:focus,.form-select:focus,.form-textarea:focus{outline:none;border-color:var(--primary,#2563eb);box-shadow:0 0 0 3px rgba(37,99,235,.1)}
+.form-textarea{resize:vertical;min-height:70px}
+.form-hint{font-size:.7rem;color:#94a3b8;margin-top:.15rem}
+.generate-btn-wrap{text-align:center;margin-top:1.5rem;padding-top:1.25rem;border-top:1px solid #e2e8f0}
+.plan-header{background:white;border-radius:10px;padding:1.125rem 1.25rem;margin-bottom:1rem;box-shadow:0 1px 3px rgba(0,0,0,.07)}
+.plan-header-top{display:flex;justify-content:space-between;align-items:flex-start;flex-wrap:wrap;gap:.75rem;margin-bottom:.875rem}
+.plan-title{font-size:1.05rem;font-weight:800;color:#1e293b}
+.plan-subtitle{font-size:.75rem;color:#64748b;margin-top:.15rem}
+.plan-actions{display:flex;gap:.4rem;flex-wrap:wrap}
+.progress-wrap{background:#e2e8f0;border-radius:999px;height:10px;overflow:hidden;margin-bottom:.35rem}
+.progress-bar{height:100%;border-radius:999px;background:var(--primary,#2563eb);transition:width .4s ease}
+.progress-label{font-size:.72rem;color:#64748b;font-weight:600}
+.filter-bar{background:white;border-radius:8px;padding:.6rem .875rem;margin-bottom:.875rem;display:flex;gap:.5rem;align-items:center;flex-wrap:wrap;box-shadow:0 1px 2px rgba(0,0,0,.06)}
+.filter-select-sm{border:1px solid #d1d5db;border-radius:5px;padding:.28rem .45rem;font-size:.75rem;font-family:inherit;color:#374151;background:white}
+.filter-select-sm:focus{outline:none;border-color:var(--primary,#2563eb)}
+.filter-label{font-size:.72rem;font-weight:600;color:#64748b}
+.week-block{background:white;border-radius:9px;margin-bottom:.625rem;box-shadow:0 1px 3px rgba(0,0,0,.07);overflow:hidden}
+.week-header{display:flex;align-items:center;gap:.75rem;padding:.75rem 1rem;cursor:pointer;user-select:none;transition:background .1s}
+.week-header:hover{background:#f8fafc}
+.week-indicator{font-size:.8rem;font-weight:800;color:white;background:var(--primary,#2563eb);border-radius:5px;padding:.18rem .55rem;white-space:nowrap;flex-shrink:0}
+.week-indicator.today{background:#059669}
+.week-indicator.past{background:#94a3b8}
+.week-date{font-size:.78rem;color:#64748b;flex-shrink:0}
+.week-title{font-size:.85rem;font-weight:700;color:#1e293b;flex:1}
+.week-progress-mini{display:flex;align-items:center;gap:.5rem;flex-shrink:0}
+.week-progress-track{width:72px;height:5px;background:#e2e8f0;border-radius:99px;overflow:hidden}
+.week-progress-fill{height:100%;border-radius:99px;background:#16a34a;transition:width .3s}
+.week-count{font-size:.7rem;color:#64748b;font-weight:600;white-space:nowrap}
+.week-chevron{font-size:.75rem;color:#94a3b8;transition:transform .2s;flex-shrink:0}
+.week-chevron.open{transform:rotate(180deg)}
+.week-body{display:none;padding:.25rem .75rem .75rem}
+.week-body.open{display:block}
+.week-add-btn{display:block;width:100%;background:none;border:1.5px dashed #e2e8f0;border-radius:5px;padding:.3rem;color:#94a3b8;font-size:.72rem;cursor:pointer;font-family:inherit;margin-top:.4rem;transition:border-color .12s,color .12s;text-align:center}
+.week-add-btn:hover{border-color:var(--primary,#2563eb);color:var(--primary,#2563eb)}
+.task-row{display:flex;align-items:flex-start;gap:.625rem;padding:.55rem .375rem;border-radius:6px;transition:background .1s;cursor:pointer}
+.task-row:hover{background:#f8fafc}
+.task-row.completed .task-title{text-decoration:line-through;color:#94a3b8}
+.task-check{width:18px;height:18px;border:2px solid #d1d5db;border-radius:4px;flex-shrink:0;display:flex;align-items:center;justify-content:center;margin-top:1px;transition:border-color .15s,background .15s;cursor:pointer}
+.task-row.completed .task-check{background:var(--primary,#2563eb);border-color:var(--primary,#2563eb)}
+.task-check-icon{display:none;color:white;font-size:.65rem;font-weight:900}
+.task-row.completed .task-check-icon{display:block}
+.task-content{flex:1;min-width:0}
+.task-title{font-size:.82rem;font-weight:500;color:#1e293b;line-height:1.4}
+.task-meta{display:flex;gap:.3rem;align-items:center;flex-wrap:wrap;margin-top:.25rem}
+.task-desc{font-size:.72rem;color:#64748b;margin-top:.2rem;line-height:1.45}
+.task-notes-indicator{font-size:.65rem;color:#7c3aed;font-weight:600}
+.badge{font-size:.6rem;font-weight:700;padding:.1rem .36rem;border-radius:3px;text-transform:uppercase;letter-spacing:.04em;white-space:nowrap}
+.badge-priority-high{background:#fee2e2;color:#dc2626}
+.badge-priority-urgent{background:#fce7f3;color:#be185d}
+.badge-priority-medium{background:#dbeafe;color:#1d4ed8}
+.badge-priority-low{background:#f1f5f9;color:#64748b}
+.badge-responsible{background:#f0fdf4;color:#15803d}
+.cat-venue{background:#e0f2fe;color:#0369a1}
+.cat-suppliers{background:#f0fdf4;color:#166534}
+.cat-content{background:#fdf4ff;color:#7e22ce}
+.cat-marketing{background:#fff7ed;color:#c2410c}
+.cat-registration{background:#eff6ff;color:#1d4ed8}
+.cat-av{background:#f0fdfa;color:#0f766e}
+.cat-catering{background:#fef9c3;color:#854d0e}
+.cat-signage{background:#fce7f3;color:#9d174d}
+.cat-staffing{background:#fff1f2;color:#be123c}
+.cat-postevent{background:#f1f5f9;color:#475569}
+.week-empty{font-size:.75rem;color:#94a3b8;padding:.35rem .375rem;font-style:italic}
+/* Task slide-out panel */
+.panel-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.22);z-index:100}
+.panel-overlay.open{display:block}
+.task-panel{position:fixed;top:0;right:0;bottom:0;width:440px;max-width:100vw;background:white;box-shadow:-4px 0 28px rgba(0,0,0,.14);z-index:101;display:flex;flex-direction:column;transform:translateX(100%);transition:transform .23s ease}
+.task-panel.open{transform:translateX(0)}
+.panel-header{padding:1rem 1rem .75rem;border-bottom:1px solid #e2e8f0;display:flex;align-items:flex-start;gap:.5rem;flex-shrink:0}
+.panel-check{width:22px;height:22px;border:2px solid #d1d5db;border-radius:5px;flex-shrink:0;display:flex;align-items:center;justify-content:center;margin-top:2px;cursor:pointer;transition:border-color .15s,background .15s}
+.panel-check.done{background:var(--primary,#2563eb);border-color:var(--primary,#2563eb)}
+.panel-check.done::after{content:'✓';color:white;font-size:.7rem;font-weight:900}
+.panel-title-input{flex:1;font-size:.95rem;font-weight:700;color:#1e293b;border:none;outline:none;resize:none;font-family:inherit;line-height:1.4;background:transparent}
+.panel-title-input:focus{background:#f8fafc;border-radius:4px;padding:2px 4px;margin:-2px -4px}
+.panel-body{flex:1;overflow-y:auto;padding:1rem;display:flex;flex-direction:column;gap:.75rem}
+.panel-field{display:flex;flex-direction:column;gap:.3rem}
+.panel-label{font-size:.65rem;font-weight:700;color:#64748b;text-transform:uppercase;letter-spacing:.06em}
+.panel-row{display:grid;grid-template-columns:1fr 1fr;gap:.625rem}
+.panel-input,.panel-select,.panel-textarea{border:1px solid #e2e8f0;border-radius:6px;padding:.4rem .625rem;font-size:.82rem;font-family:inherit;color:#1e293b;background:white;width:100%}
+.panel-input:focus,.panel-select:focus,.panel-textarea:focus{outline:none;border-color:var(--primary,#2563eb);box-shadow:0 0 0 3px rgba(37,99,235,.08)}
+.panel-textarea{resize:vertical;min-height:70px}
+.panel-divider{border:none;border-top:1px solid #e2e8f0;margin:.125rem 0}
+.panel-footer{padding:.75rem 1rem;border-top:1px solid #e2e8f0;display:flex;justify-content:space-between;align-items:center;flex-shrink:0}
+.na-section{background:#fffbeb;border:1px solid #fde68a;border-radius:8px;padding:.75rem;display:flex;flex-direction:column;gap:.5rem}
+.na-label{font-size:.7rem;font-weight:700;color:#92400e;text-transform:uppercase;letter-spacing:.06em}
+/* Ops Tracker picker */
+.ops-picker-list{display:flex;flex-direction:column;gap:.4rem;max-height:200px;overflow-y:auto}
+.ops-picker-item{display:flex;align-items:center;gap:.625rem;padding:.5rem .75rem;background:#f8fafc;border:1px solid #e2e8f0;border-radius:7px;cursor:pointer;transition:border-color .1s,background .1s;font-size:.82rem}
+.ops-picker-item:hover,.ops-picker-item.selected{background:#eff6ff;border-color:var(--primary,#2563eb)}
+.ops-picker-dot{width:8px;height:8px;border-radius:50%;background:#22c55e;flex-shrink:0}
+.ops-picker-name{flex:1;font-weight:600;color:#334155}
+.ops-picker-sub{font-size:.7rem;color:#94a3b8}
+.overwrite-warning{background:#fff7ed;border:1px solid #fed7aa;border-radius:7px;padding:.625rem .75rem;font-size:.78rem;color:#92400e;line-height:1.5}
+.overwrite-confirm{display:flex;align-items:center;gap:.5rem;margin-top:.5rem;font-size:.78rem;color:#374151;cursor:pointer}
+/* Erleah chat */
+.erleah-chat{position:fixed;bottom:1.25rem;right:1.25rem;z-index:80;display:flex;flex-direction:column;align-items:flex-end;gap:.5rem}
+.erleah-toggle{width:46px;height:46px;border-radius:50%;background:linear-gradient(135deg,#FF6B6B,#FF8E53);border:none;cursor:pointer;display:flex;align-items:center;justify-content:center;box-shadow:0 4px 14px rgba(255,107,107,.4);font-size:1.1rem;transition:transform .15s,box-shadow .15s}
+.erleah-toggle:hover{transform:scale(1.08);box-shadow:0 6px 18px rgba(255,107,107,.5)}
+.erleah-panel{background:white;border-radius:12px;width:320px;max-height:420px;box-shadow:0 8px 30px rgba(0,0,0,.15);display:flex;flex-direction:column;overflow:hidden}
+.erleah-panel-header{background:linear-gradient(135deg,#FF6B6B,#FF8E53);color:white;padding:.625rem .875rem;display:flex;align-items:center;justify-content:space-between;flex-shrink:0}
+.erleah-panel-title{font-size:.82rem;font-weight:700}
+.erleah-messages{flex:1;overflow-y:auto;padding:.75rem;display:flex;flex-direction:column;gap:.5rem;min-height:120px}
+.erleah-msg{padding:.5rem .625rem;border-radius:8px;font-size:.78rem;line-height:1.5;max-width:90%}
+.erleah-msg.assistant{background:#f8fafc;color:#334155;align-self:flex-start}
+.erleah-msg.user{background:var(--primary,#2563eb);color:white;align-self:flex-end}
+.erleah-msg.loading{background:#f8fafc;color:#94a3b8;font-style:italic;align-self:flex-start}
+.erleah-input-wrap{display:flex;gap:.375rem;padding:.625rem;border-top:1px solid #e2e8f0;flex-shrink:0}
+.erleah-input{flex:1;border:1px solid #d1d5db;border-radius:6px;padding:.375rem .5rem;font-size:.78rem;font-family:inherit;background:#f9fafb}
+.erleah-input:focus{outline:none;border-color:var(--primary,#2563eb);background:white}
+.erleah-send{background:var(--primary,#2563eb);color:white;border:none;border-radius:6px;padding:.375rem .625rem;cursor:pointer;font-size:.75rem;font-weight:600;font-family:inherit;flex-shrink:0}
+.erleah-send:hover{opacity:.88}
+/* Modal */
+.modal-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.38);z-index:200;align-items:center;justify-content:center}
+.modal-overlay.open{display:flex}
+.modal{background:white;border-radius:12px;width:480px;max-width:95vw;max-height:88vh;display:flex;flex-direction:column;box-shadow:0 20px 60px rgba(0,0,0,.18)}
+.modal-header{padding:1rem 1.25rem .875rem;border-bottom:1px solid #e2e8f0;display:flex;justify-content:space-between;align-items:center;flex-shrink:0}
+.modal-title{font-size:.95rem;font-weight:700}
+.modal-body{flex:1;overflow-y:auto;padding:1.125rem 1.25rem;font-size:.82rem;color:#374151;line-height:1.6;display:flex;flex-direction:column;gap:.75rem}
+.modal-footer{padding:.875rem 1.25rem;border-top:1px solid #e2e8f0;display:flex;justify-content:flex-end;gap:.5rem}
+.toast{position:fixed;bottom:1.25rem;left:50%;transform:translateX(-50%) translateY(4rem);background:#1e293b;color:white;padding:.5rem 1.1rem;border-radius:8px;font-size:.78rem;font-weight:500;z-index:9999;transition:transform .22s;box-shadow:0 4px 16px rgba(0,0,0,.2);white-space:nowrap}
+.toast.show{transform:translateX(-50%) translateY(0)}
+.app-footer{text-align:center;padding:.75rem;font-size:.67rem;color:#94a3b8;margin-top:2rem}
+.app-footer a{color:var(--primary,#2563eb);text-decoration:none;font-weight:600}
+@media print{.app-header,.filter-bar,.plan-actions,.generate-btn-wrap,.app-footer,.btn,.erleah-chat,.task-panel,.panel-overlay{display:none!important}.week-body{display:block!important}body{background:white}.task-row.completed{opacity:.5}@page{margin:1.5cm}}
+@media(max-width:600px){.form-grid{grid-template-columns:1fr}.form-field.full{grid-column:1}.plan-actions{flex-wrap:wrap}.task-panel{width:100vw}}
+</style>
+</head>
+<body>
+<header class="app-header">
+  <div class="header-left">
+    <img src="{{config.logoUrl}}" alt="Logo" class="header-logo" onerror="this.style.display='none'">
+    <div><div class="header-company">Conference Toolkit</div><div class="header-meta" id="header-meta">Event Countdown Planner</div></div>
+  </div>
+  <div class="header-right" id="header-right">
+    <button class="btn btn-white btn-sm" onclick="window.print()">🖨 Print</button>
+  </div>
+</header>
+<main id="setup-phase">
+<div class="container">
+  <div class="setup-card">
+    <div class="setup-card-header">
+      <h2>🗓 Event Countdown Planner</h2>
+      <p>Generate a week-by-week task plan for your event — or import a saved template.</p>
+    </div>
+    <div class="setup-card-body">
+      <div class="form-grid">
+        <div class="form-field full">
+          <label class="form-label">Event Name *</label>
+          <input type="text" class="form-input" id="event-name" placeholder="e.g. TechSummit 2026 London">
+        </div>
+        <div class="form-field">
+          <label class="form-label">Event Date *</label>
+          <input type="date" class="form-input" id="event-date">
+        </div>
+        <div class="form-field">
+          <label class="form-label">Event Type</label>
+          <select class="form-select" id="event-type">
+            <option value="conference">Conference</option>
+            <option value="gala">Gala / Awards</option>
+            <option value="exhibition">Exhibition / Trade Show</option>
+            <option value="festival">Festival</option>
+            <option value="corporate">Corporate Event</option>
+            <option value="hybrid">Hybrid Event</option>
+            <option value="virtual">Virtual Event</option>
+            <option value="other">Other</option>
+          </select>
+        </div>
+        <div class="form-field">
+          <label class="form-label">Expected Attendance</label>
+          <select class="form-select" id="attendance">
+            <option value="small">Under 100</option>
+            <option value="medium" selected>100–500</option>
+            <option value="large">500–2,000</option>
+            <option value="xlarge">2,000+</option>
+          </select>
+        </div>
+        <div class="form-field">
+          <label class="form-label">Venue Status</label>
+          <select class="form-select" id="venue-status">
+            <option value="searching">Still searching</option>
+            <option value="shortlisted">Shortlisted</option>
+            <option value="confirmed" selected>Confirmed</option>
+          </select>
+        </div>
+        <div class="form-field full">
+          <label class="form-label">Special Considerations</label>
+          <textarea class="form-textarea" id="special-notes" placeholder="e.g. Outdoor venue, no in-house AV, international speakers…"></textarea>
+          <span class="form-hint">Erleah uses this to tailor the plan.</span>
+        </div>
+      </div>
+      <div class="generate-btn-wrap">
+        <div style="display:flex;gap:.75rem;justify-content:center;flex-wrap:wrap;">
+          <button class="btn btn-primary btn-lg" onclick="generatePlan()">✨ Generate Plan</button>
+          <button class="btn btn-secondary btn-lg" onclick="document.getElementById('import-file').click()">📂 Import Template</button>
+          <input type="file" id="import-file" accept=".json" style="display:none" onchange="importTemplate(this)">
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+</main>
+
+<main id="plan-phase" style="display:none">
+<div class="container">
+  <div class="plan-header">
+    <div class="plan-header-top">
+      <div>
+        <div class="plan-title" id="plan-title">Event Plan</div>
+        <div class="plan-subtitle" id="plan-subtitle"></div>
+      </div>
+      <div class="plan-actions">
+        <button class="btn btn-secondary btn-sm" onclick="openOpsPickerModal()">📋 Send to Ops Tracker</button>
+        <button class="btn btn-secondary btn-sm" onclick="openTemplateExportModal()">📤 Export as Template</button>
+        <button class="btn btn-secondary btn-sm" onclick="exportCSV()">⬇ CSV</button>
+        <button class="btn btn-ghost btn-sm" onclick="resetToSetup()">← New Plan</button>
+      </div>
+    </div>
+    <div class="progress-wrap"><div class="progress-bar" id="progress-bar" style="width:0%"></div></div>
+    <div class="progress-label" id="progress-label">0 of 0 tasks complete</div>
+  </div>
+  <div class="filter-bar">
+    <span class="filter-label">Filter:</span>
+    <select class="filter-select-sm" id="filter-category" onchange="renderPlan()">
+      <option value="">All categories</option>
+      <option value="venue">Venue</option>
+      <option value="suppliers">Suppliers</option>
+      <option value="content">Content</option>
+      <option value="marketing">Marketing</option>
+      <option value="registration">Registration</option>
+      <option value="av">AV / Tech</option>
+      <option value="catering">Catering</option>
+      <option value="signage">Signage</option>
+      <option value="staffing">Staffing</option>
+      <option value="postevent">Post-Event</option>
+    </select>
+    <select class="filter-select-sm" id="filter-status" onchange="renderPlan()">
+      <option value="">All tasks</option>
+      <option value="open">Incomplete only</option>
+      <option value="done">Complete only</option>
+    </select>
+    <select class="filter-select-sm" id="filter-priority" onchange="renderPlan()">
+      <option value="">All priorities</option>
+      <option value="urgent">Urgent</option>
+      <option value="high">High</option>
+      <option value="medium">Medium</option>
+      <option value="low">Low</option>
+    </select>
+  </div>
+  <div id="plan-list"></div>
+</div>
+</main>
+<div class="panel-overlay" id="panel-overlay" onclick="closeTaskPanel()"></div>
+<div class="task-panel" id="task-panel">
+  <div class="panel-header">
+    <div class="panel-check" id="panel-check" onclick="togglePanelComplete()"></div>
+    <textarea class="panel-title-input" id="panel-title" rows="1" placeholder="Task title"></textarea>
+    <button class="btn btn-ghost btn-sm" onclick="closeTaskPanel()" style="margin-left:.25rem;flex-shrink:0">✕</button>
+  </div>
+  <div class="panel-body">
+    <div class="panel-field"><label class="panel-label">Description</label><textarea class="panel-textarea" id="panel-desc" placeholder="What needs to happen?"></textarea></div>
+    <div class="na-section">
+      <span class="na-label">⚡ Next Action</span>
+      <div class="panel-field"><label class="panel-label">Action</label><input type="text" class="panel-input" id="panel-na-text" placeholder="e.g. Call venue to confirm AV specs"></div>
+      <div class="panel-field"><label class="panel-label">Due Date</label><input type="date" class="panel-input" id="panel-na-date"></div>
+    </div>
+    <div class="panel-field"><label class="panel-label">Notes</label><textarea class="panel-textarea" id="panel-notes" placeholder="Notes, context, decisions made…" style="min-height:90px"></textarea></div>
+    <div class="panel-row">
+      <div class="panel-field"><label class="panel-label">Responsible</label><input type="text" class="panel-input" id="panel-responsible" placeholder="Who owns this?"></div>
+      <div class="panel-field"><label class="panel-label">Category</label>
+        <select class="panel-select" id="panel-category">
+          <option value="venue">Venue</option><option value="suppliers">Suppliers</option><option value="content">Content</option><option value="marketing">Marketing</option><option value="registration">Registration</option><option value="av">AV / Tech</option><option value="catering">Catering</option><option value="signage">Signage</option><option value="staffing">Staffing</option><option value="postevent">Post-Event</option><option value="general">General</option>
+        </select>
+      </div>
+    </div>
+    <div class="panel-row">
+      <div class="panel-field"><label class="panel-label">Priority</label>
+        <select class="panel-select" id="panel-priority">
+          <option value="urgent">🔴 Urgent</option><option value="high">🟠 High</option><option value="medium" selected>🔵 Medium</option><option value="low">⚪ Low</option>
+        </select>
+      </div>
+      <div class="panel-field"><label class="panel-label">Week</label><input type="text" class="panel-input" id="panel-week" readonly style="background:#f8fafc;color:#64748b"></div>
+    </div>
+  </div>
+  <div class="panel-footer">
+    <button class="btn btn-danger btn-sm" onclick="deleteTaskFromPanel()">🗑 Delete task</button>
+    <button class="btn btn-primary btn-sm" onclick="saveTaskPanel()">Save changes</button>
+  </div>
+</div>
+<!-- Template Export Modal -->
+<div class="modal-overlay" id="modal-template-export">
+  <div class="modal">
+    <div class="modal-header"><span class="modal-title">📤 Export as Template</span><button class="btn btn-ghost btn-sm" onclick="closeModal('modal-template-export')">✕</button></div>
+    <div class="modal-body">
+      <p><strong>What gets exported:</strong> task titles, descriptions, categories, priorities, responsible fields, and week assignments.</p>
+      <div class="overwrite-warning">⚠️ <strong>Note:</strong> This export does not include notes, next actions, deadline dates, or completion status — only the structural plan. Templates are meant to be reused as a starting point, not as a record of work done.</div>
+      <div class="panel-field"><label class="panel-label">Template Name</label><input type="text" class="form-input" id="template-name-input" placeholder="e.g. Conference Template 2026"></div>
+    </div>
+    <div class="modal-footer"><button class="btn btn-ghost" onclick="closeModal('modal-template-export')">Cancel</button><button class="btn btn-primary" onclick="doExportTemplate()">📥 Download Template</button></div>
+  </div>
+</div>
+
+<!-- Ops Tracker Picker Modal -->
+<div class="modal-overlay" id="modal-ops-picker">
+  <div class="modal">
+    <div class="modal-header"><span class="modal-title">📋 Send to Ops Tracker</span><button class="btn btn-ghost btn-sm" onclick="closeModal('modal-ops-picker')">✕</button></div>
+    <div class="modal-body">
+      <p>Select an Ops Tracker deployment to send your tasks to. This will add or <strong>overwrite</strong> tasks in the selected tracker.</p>
+      <div class="panel-field"><label class="panel-label">Available Deployments</label><div class="ops-picker-list" id="ops-picker-list"><div style="color:#94a3b8;font-style:italic;font-size:.78rem">Scanning for Ops Tracker deployments…</div></div></div>
+      <div class="overwrite-warning" id="ops-overwrite-warning" style="display:none">
+        ⚠️ <strong>This will overwrite all existing tasks</strong> in the selected Ops Tracker deployment. Any data already entered there (stages, notes, changelog) will be replaced.<br>
+        <label class="overwrite-confirm"><input type="checkbox" id="ops-overwrite-confirm"> I understand — overwrite the existing tasks</label>
+      </div>
+    </div>
+    <div class="modal-footer"><button class="btn btn-ghost" onclick="closeModal('modal-ops-picker')">Cancel</button><button class="btn btn-primary" id="ops-send-btn" onclick="sendToOpsTracker()" disabled>Send Tasks</button></div>
+  </div>
+</div>
+
+<!-- Erleah chat -->
+<div class="erleah-chat" id="erleah-chat" style="display:none">
+  <div class="erleah-panel" id="erleah-panel" style="display:none">
+    <div class="erleah-panel-header">
+      <span class="erleah-panel-title">✨ Erleah — Plan Assistant</span>
+      <button class="btn btn-ghost btn-sm" style="color:white;padding:.2rem" onclick="toggleErleah()">✕</button>
+    </div>
+    <div class="erleah-messages" id="erleah-messages"></div>
+    <div class="erleah-input-wrap">
+      <input type="text" class="erleah-input" id="erleah-input" placeholder="Ask Erleah about your plan…" onkeydown="if(event.key==='Enter')sendErleahMsg()">
+      <button class="erleah-send" onclick="sendErleahMsg()">Send</button>
+    </div>
+  </div>
+  <button class="erleah-toggle" onclick="toggleErleah()" title="Chat with Erleah">✨</button>
+</div>
+<div class="toast" id="toast"></div>
+<div class="app-footer">Powered by <a href="https://github.com/Visual-Hive/vh-conference-toolkit" target="_blank">VH Conference Toolkit</a></div>
+<script>
+const EVENTHIVE_CONFIG = {};
+const CFG = EVENTHIVE_CONFIG;
+const LS_KEY = 'eventhive_countdown_' + (CFG.instanceId || 'default');
+
+// ── State ─────────────────────────────────────────────
+let state = { eventName:'', eventDate:'', eventType:'', tasks:[], generated:false };
+let activePanelTaskId = null;
+let selectedOpsDeployKey = null;
+let erleahOpen = false;
+let erleahHistory = [];
+
+// ── Week definitions ───────────────────────────────────
+const WEEK_DEFS = [
+  {offset:-16,title:'Kickoff — 16 Weeks Out',focus:'Foundation: Secure venue, brief suppliers, set budget'},
+  {offset:-12,title:'12 Weeks Out',focus:'Lock in key suppliers and confirm major contracts'},
+  {offset:-8, title:'8 Weeks Out', focus:'Content, speakers, marketing in full swing'},
+  {offset:-6, title:'6 Weeks Out', focus:'Registration, AV/tech planning, run-of-show draft'},
+  {offset:-4, title:'4 Weeks Out', focus:'Logistics locked — focus on operations'},
+  {offset:-3, title:'3 Weeks Out', focus:'Final confirmations across all workstreams'},
+  {offset:-2, title:'2 Weeks Out', focus:'Production phase: briefings, packs, walk-throughs'},
+  {offset:-1, title:'Final Week',  focus:'Delivery ready: team briefed, kit staged'},
+  {offset:0,  title:'Event Week',  focus:'Go time'},
+  {offset:1,  title:'Post-Event',  focus:'Wrap-up, reports, thank-yous'},
+];
+
+// ── Task templates ──────────────────────────────────────
+const BASE_TEMPLATES = [
+  // -16
+  {weekOffset:-16,title:'Confirm venue contract and payment schedule',desc:'Review all T&Cs, confirm deposit paid, add key dates to calendar.',category:'venue',priority:'urgent',responsible:''},
+  {weekOffset:-16,title:'Brief AV supplier and share event overview',desc:'Send brief with session schedule, staging requirements, and tech spec.',category:'av',priority:'high',responsible:''},
+  {weekOffset:-16,title:'Set event budget and approval process',desc:'Agree budget lines, approvers, and purchase order process.',category:'general',priority:'urgent',responsible:''},
+  {weekOffset:-16,title:'Appoint event management team and assign roles',desc:'Confirm who is responsible for each workstream.',category:'staffing',priority:'high',responsible:''},
+  {weekOffset:-16,title:'Draft event agenda skeleton',desc:'Rough timings, session formats, keynote slots.',category:'content',priority:'medium',responsible:''},
+  // -12
+  {weekOffset:-12,title:'Issue RFPs to shortlisted caterers',desc:'Send brief with guest numbers, dietary requirements, and service style.',category:'catering',priority:'high',responsible:''},
+  {weekOffset:-12,title:'Confirm keynote speakers and issue contracts',desc:'Signed speaker agreements, AV requirements, bio and photo requests.',category:'content',priority:'urgent',responsible:''},
+  {weekOffset:-12,title:'Launch registration platform',desc:'Set up reg form, ticket types, confirmation emails.',category:'registration',priority:'high',responsible:''},
+  {weekOffset:-12,title:'Appoint PR/comms agency or brief internal team',desc:'Agree media strategy, key messages, launch timeline.',category:'marketing',priority:'medium',responsible:''},
+  {weekOffset:-12,title:'Confirm breakout/session room layout with venue',desc:'Floor plan sign-off, furniture, AV drop points.',category:'venue',priority:'medium',responsible:''},
+  {weekOffset:-12,title:'Book accommodation block for speakers and team',desc:'Negotiate room block with hotel; confirm cut-off date.',category:'suppliers',priority:'medium',responsible:''},
+  // -8
+  {weekOffset:-8,title:'Send save-the-date / open registration to audience',desc:'Email campaign, social posts, website update.',category:'marketing',priority:'high',responsible:''},
+  {weekOffset:-8,title:'Finalise session programme and speaker bios',desc:'Confirmed agenda, all bios and headshots received.',category:'content',priority:'high',responsible:''},
+  {weekOffset:-8,title:'Appoint signage supplier and brief on requirements',desc:'Wayfinding, branding, pull-up banners, stage backdrops.',category:'signage',priority:'medium',responsible:''},
+  {weekOffset:-8,title:'Brief catering supplier on confirmed menu',desc:'Final menu sign-off, dietary breakdown, service timings.',category:'catering',priority:'medium',responsible:''},
+  {weekOffset:-8,title:'Confirm AV and staging design',desc:'Stage set, LED screens, lighting rig — get design visuals signed off.',category:'av',priority:'high',responsible:''},
+  // -6
+  {weekOffset:-6,title:'Open full marketing campaign to target audience',desc:'Email, social, paid media, partner comms all live.',category:'marketing',priority:'high',responsible:''},
+  {weekOffset:-6,title:'Issue exhibitor/sponsor kit and stand assignments',desc:'Floorplan confirmed, build guide, badge collection process.',category:'suppliers',priority:'medium',responsible:''},
+  {weekOffset:-6,title:'Draft run-of-show document',desc:'Minute-by-minute schedule for all event areas.',category:'general',priority:'high',responsible:''},
+  {weekOffset:-6,title:'Brief security and crowd management supplier',desc:'Staffing levels, brief, access control plan.',category:'staffing',priority:'medium',responsible:''},
+  {weekOffset:-6,title:'Set up attendee communication cadence',desc:'Practical info emails, speaker updates, registration confirmations.',category:'registration',priority:'medium',responsible:''},
+  // -4
+  {weekOffset:-4,title:'Issue team and supplier briefing documents',desc:'Everyone has their run-of-show, contact list, and brief.',category:'staffing',priority:'urgent',responsible:''},
+  {weekOffset:-4,title:'Confirm final attendee numbers with all suppliers',desc:'Catering, AV, badge printing, seating based on confirmed registrations.',category:'general',priority:'urgent',responsible:''},
+  {weekOffset:-4,title:'Approve and order all printed materials',desc:'Programmes, signage, sponsor materials, name badges.',category:'signage',priority:'high',responsible:''},
+  {weekOffset:-4,title:'Conduct AV walk-through at venue',desc:'Check all screens, microphones, lighting, streaming if applicable.',category:'av',priority:'high',responsible:''},
+  {weekOffset:-4,title:'Confirm accessibility arrangements',desc:'Step-free access, hearing loops, quiet room, dietary needs.',category:'venue',priority:'medium',responsible:''},
+  // -3
+  {weekOffset:-3,title:'Send final practical information to all attendees',desc:'Travel info, schedule, dress code, parking, FAQs.',category:'registration',priority:'high',responsible:''},
+  {weekOffset:-3,title:'Confirm photographer and videographer brief',desc:'Shot list, key moments, deliverables, licensing.',category:'suppliers',priority:'medium',responsible:''},
+  {weekOffset:-3,title:'Brief all day-of-event staff',desc:'Roles, responsibilities, timings, contingency plans.',category:'staffing',priority:'high',responsible:''},
+  {weekOffset:-3,title:'Final sign-off on all supplier invoices',desc:'Ensure all agreed costs approved and payment terms confirmed.',category:'general',priority:'medium',responsible:''},
+  // -2
+  {weekOffset:-2,title:'Complete full event production schedule',desc:'Detailed set-up timings for all suppliers, load-in/load-out.',category:'general',priority:'urgent',responsible:''},
+  {weekOffset:-2,title:'Conduct full team production meeting',desc:'Walk everyone through the day, Q&A, assign lead roles.',category:'staffing',priority:'high',responsible:''},
+  {weekOffset:-2,title:'Confirm speaker AV requirements one final time',desc:'Clicker, slides format, confidence monitors, timing.',category:'av',priority:'high',responsible:''},
+  {weekOffset:-2,title:'Prepare registration desk packs and name badges',desc:'Alphabetical badge packs, guest list, late-reg process.',category:'registration',priority:'medium',responsible:''},
+  // -1
+  {weekOffset:-1,title:'Venue set-up and dressing complete',desc:'Staging, signage, registration area, catering stations all dressed.',category:'venue',priority:'urgent',responsible:''},
+  {weekOffset:-1,title:'Final technical rehearsal with AV',desc:'Full run-through of all AV cues, video playback, presentations.',category:'av',priority:'urgent',responsible:''},
+  {weekOffset:-1,title:'Brief security and front-of-house team on-site',desc:'Meet the team, walk the site, issue radios and contact sheets.',category:'staffing',priority:'high',responsible:''},
+  {weekOffset:-1,title:'Pre-event call with key speakers',desc:'Logistics, Q&A format, on-site contact, green room arrangements.',category:'content',priority:'medium',responsible:''},
+  // 0
+  {weekOffset:0,title:'Run registration and guest arrival',desc:'Ensure smooth check-in, queue management, team in position.',category:'registration',priority:'urgent',responsible:''},
+  {weekOffset:0,title:'Manage run-of-show on the day',desc:'Keep all session timings, manage speakers, handle issues.',category:'general',priority:'urgent',responsible:''},
+  {weekOffset:0,title:'Monitor and respond to real-time issues',desc:'Maintain issues log, communicate escalations to event director.',category:'general',priority:'high',responsible:''},
+  {weekOffset:0,title:'Capture photos, video, and attendee feedback',desc:'Ensure photographer coverage, social content, post-event survey.',category:'marketing',priority:'medium',responsible:''},
+  // +1
+  {weekOffset:1,title:'Send post-event thank-you emails',desc:'To attendees, speakers, sponsors, and suppliers.',category:'marketing',priority:'high',responsible:''},
+  {weekOffset:1,title:'Collect and review all supplier invoices',desc:'Check against contracts; process final payments.',category:'general',priority:'high',responsible:''},
+  {weekOffset:1,title:'Conduct post-event team debrief',desc:'What worked, what didn\'t, improvements for next time.',category:'general',priority:'medium',responsible:''},
+  {weekOffset:1,title:'Compile post-event report',desc:'Attendance, budget actuals, feedback summary, key metrics.',category:'general',priority:'medium',responsible:''},
+  {weekOffset:1,title:'Archive event assets and hand over materials',desc:'Photos, video, presentations, supplier contacts — filed for future.',category:'postevent',priority:'low',responsible:''},
+];
+
+// Type-specific additions
+const TYPE_EXTRAS = {
+  gala:[
+    {weekOffset:-8,title:'Book entertainment, band, or DJ',desc:'Contracts, set times, AV/sound requirements.',category:'suppliers',priority:'high',responsible:''},
+    {weekOffset:-4,title:'Confirm table plan and gala dinner seating',desc:'Sponsor tables, VIP seating, dietary tags on seats.',category:'venue',priority:'high',responsible:''},
+    {weekOffset:-2,title:'Prepare awards ceremony script and running order',desc:'Winner envelopes, presenter briefs, autocue if needed.',category:'content',priority:'urgent',responsible:''},
+  ],
+  exhibition:[
+    {weekOffset:-8,title:'Issue exhibitor technical manual',desc:'Rigging rules, utilities, stand build regulations.',category:'suppliers',priority:'high',responsible:''},
+    {weekOffset:-4,title:'Confirm exhibitor stand build and power requirements',desc:'All exhibitor orders in, checked against hall plan.',category:'suppliers',priority:'high',responsible:''},
+    {weekOffset:-1,title:'Oversee exhibitor build days',desc:'Manage access, enforce rules, resolve issues on site.',category:'venue',priority:'urgent',responsible:''},
+  ],
+  virtual:[
+    {weekOffset:-8,title:'Configure virtual event platform',desc:'Session rooms, sponsor booths, networking features, branded look.',category:'av',priority:'urgent',responsible:''},
+    {weekOffset:-4,title:'Run technical rehearsal with all virtual speakers',desc:'Camera, mic, lighting, slides tested in platform.',category:'av',priority:'urgent',responsible:''},
+    {weekOffset:-2,title:'Send virtual attendee access and tech guide',desc:'Login links, platform walkthrough, tech check instructions.',category:'registration',priority:'high',responsible:''},
+  ],
+};
+// ── Persistence ────────────────────────────────────────
+function saveState() {
+  localStorage.setItem(LS_KEY, JSON.stringify(state));
+  postMessageUpdate();
+}
+function loadState() {
+  try { const s = localStorage.getItem(LS_KEY); if(s) state = JSON.parse(s); } catch(e){}
+}
+
+// ── Generate Plan ───────────────────────────────────────
+function generatePlan() {
+  const name = document.getElementById('event-name').value.trim();
+  const date = document.getElementById('event-date').value;
+  if(!name) { showToast('Please enter an event name.'); return; }
+  if(!date) { showToast('Please select an event date.'); return; }
+  const type = document.getElementById('event-type').value;
+  let templates = [...BASE_TEMPLATES];
+  if(TYPE_EXTRAS[type]) templates = templates.concat(TYPE_EXTRAS[type]);
+  // Attendance adjustments
+  const att = document.getElementById('attendance').value;
+  if(att==='small') templates = templates.filter(t=>t.category!=='signage'||t.priority==='urgent');
+  // Build tasks with IDs
+  const tasks = templates.map(t => ({
+    id: crypto.randomUUID ? crypto.randomUUID() : Math.random().toString(36).slice(2),
+    ...t,
+    completed:false,
+    notes:'',
+    nextActionText:'',
+    nextActionDate:'',
+    deadlineDate:'',
+    createdAt: new Date().toISOString(),
+  }));
+  state = { eventName:name, eventDate:date, eventType:type, tasks, generated:true };
+  saveState();
+  showPlan();
+}
+
+// ── Show Plan ───────────────────────────────────────────
+function showPlan() {
+  document.getElementById('setup-phase').style.display = 'none';
+  document.getElementById('plan-phase').style.display = 'block';
+  document.getElementById('erleah-chat').style.display = 'flex';
+  const dateStr = state.eventDate ? new Date(state.eventDate+'T12:00:00').toLocaleDateString('en-GB',{day:'numeric',month:'long',year:'numeric'}) : '';
+  document.getElementById('plan-title').textContent = state.eventName || 'Event Plan';
+  document.getElementById('plan-subtitle').textContent = dateStr ? '📅 ' + dateStr + ' · ' + state.tasks.length + ' tasks' : state.tasks.length + ' tasks';
+  document.getElementById('header-meta').textContent = state.eventName || 'Event Plan';
+  renderPlan();
+}
+
+function resetToSetup() {
+  if(!confirm('Start a new plan? Your current plan will remain saved.')) return;
+  document.getElementById('plan-phase').style.display = 'none';
+  document.getElementById('setup-phase').style.display = 'block';
+  document.getElementById('erleah-chat').style.display = 'none';
+}
+
+// ── Render Plan ─────────────────────────────────────────
+function renderPlan() {
+  const filterCat  = document.getElementById('filter-category').value;
+  const filterStat = document.getElementById('filter-status').value;
+  const filterPri  = document.getElementById('filter-priority').value;
+  const done = state.tasks.filter(t=>t.completed).length;
+  const total = state.tasks.length;
+  const pct = total ? Math.round(done/total*100) : 0;
+  document.getElementById('progress-bar').style.width = pct + '%';
+  document.getElementById('progress-label').textContent = done + ' of ' + total + ' tasks complete (' + pct + '%)';
+  const eventDate = state.eventDate ? new Date(state.eventDate+'T12:00:00') : null;
+  const list = document.getElementById('plan-list');
+  list.innerHTML = '';
+  WEEK_DEFS.forEach(wk => {
+    let wkTasks = state.tasks.filter(t=>t.weekOffset===wk.offset);
+    if(filterCat)  wkTasks = wkTasks.filter(t=>t.category===filterCat);
+    if(filterStat==='open')  wkTasks = wkTasks.filter(t=>!t.completed);
+    if(filterStat==='done')  wkTasks = wkTasks.filter(t=>t.completed);
+    if(filterPri)  wkTasks = wkTasks.filter(t=>t.priority===filterPri);
+    if(!wkTasks.length && (filterCat||filterStat||filterPri)) return;
+    const allTasks = state.tasks.filter(t=>t.weekOffset===wk.offset);
+    const wkDone = allTasks.filter(t=>t.completed).length;
+    const wkTotal = allTasks.length;
+    const wkPct = wkTotal ? Math.round(wkDone/wkTotal*100) : 0;
+    // Determine if current/past week
+    let status = '';
+    if(eventDate) {
+      const wkDate = new Date(eventDate);
+      wkDate.setDate(wkDate.getDate() + wk.offset * 7);
+      const now = new Date();
+      const diffDays = Math.round((wkDate - now) / 86400000);
+      if(diffDays >= -6 && diffDays <= 0) status = 'today';
+      else if(diffDays < -6) status = 'past';
+    }
+    const block = document.createElement('div');
+    block.className = 'week-block';
+    const label = wk.offset === 0 ? 'Event Week' : wk.offset > 0 ? '+' + wk.offset + 'w' : wk.offset + 'w';
+    block.innerHTML = `
+      <div class="week-header" onclick="toggleWeek('wb${wk.offset}')">
+        <span class="week-indicator ${status}">${label}</span>
+        <span class="week-title">${wk.title}</span>
+        <div class="week-progress-mini">
+          <div class="week-progress-track"><div class="week-progress-fill" style="width:${wkPct}%"></div></div>
+          <span class="week-count">${wkDone}/${wkTotal}</span>
+        </div>
+        <span class="week-chevron open" id="chv${wk.offset}">▾</span>
+      </div>
+      <div class="week-body open" id="wb${wk.offset}"></div>`;
+    list.appendChild(block);
+    const body = block.querySelector('.week-body');
+    if(!wkTasks.length) {
+      body.innerHTML = '<div class="week-empty">No tasks match filters.</div>';
+    } else {
+      wkTasks.forEach(t => body.appendChild(buildTaskRow(t)));
+    }
+    body.insertAdjacentHTML('beforeend', `<button class="week-add-btn" onclick="addTaskToWeek(${wk.offset})">+ Add task</button>`);
+  });
+}
+
+function buildTaskRow(t) {
+  const row = document.createElement('div');
+  row.className = 'task-row' + (t.completed?' completed':'');
+  row.id = 'row-'+t.id;
+  const catLabel = t.category.charAt(0).toUpperCase()+t.category.slice(1).replace('av','AV').replace('postevent','Post-Event');
+  const hasNotes = t.notes||t.nextActionText;
+  row.innerHTML = `
+    <div class="task-check" onclick="event.stopPropagation();quickToggle('${t.id}')"><span class="task-check-icon">✓</span></div>
+    <div class="task-content" onclick="openTaskPanel('${t.id}')">
+      <div class="task-title">${t.title}</div>
+      <div class="task-meta">
+        <span class="badge cat-${t.category.replace(' ','-')}">${catLabel}</span>
+        <span class="badge badge-priority-${t.priority}">${t.priority}</span>
+        ${t.responsible?`<span class="badge badge-responsible">${t.responsible}</span>`:''}
+        ${hasNotes?'<span class="task-notes-indicator">📝 notes</span>':''}
+      </div>
+    </div>`;
+  return row;
+}
+
+function quickToggle(id) {
+  const t = state.tasks.find(x=>x.id===id);
+  if(!t) return;
+  t.completed = !t.completed;
+  saveState();
+  renderPlan();
+  if(activePanelTaskId===id) { const pc=document.getElementById('panel-check'); pc.classList.toggle('done',t.completed); }
+}
+
+function toggleWeek(id) {
+  const body = document.getElementById(id);
+  const chv = document.getElementById('chv'+id.replace('wb',''));
+  if(!body) return;
+  body.classList.toggle('open');
+  if(chv) chv.classList.toggle('open', body.classList.contains('open'));
+}
+
+// ── Task Panel ─────────────────────────────────────────
+function openTaskPanel(id) {
+  const t = state.tasks.find(x=>x.id===id);
+  if(!t) return;
+  activePanelTaskId = id;
+  const wkDef = WEEK_DEFS.find(w=>w.offset===t.weekOffset);
+  document.getElementById('panel-title').value = t.title||'';
+  document.getElementById('panel-desc').value = t.desc||'';
+  document.getElementById('panel-notes').value = t.notes||'';
+  document.getElementById('panel-na-text').value = t.nextActionText||'';
+  document.getElementById('panel-na-date').value = t.nextActionDate||'';
+  document.getElementById('panel-responsible').value = t.responsible||'';
+  document.getElementById('panel-category').value = t.category||'general';
+  document.getElementById('panel-priority').value = t.priority||'medium';
+  document.getElementById('panel-week').value = wkDef ? wkDef.title : 'Week '+t.weekOffset;
+  const pc = document.getElementById('panel-check');
+  pc.classList.toggle('done', !!t.completed);
+  document.getElementById('panel-overlay').classList.add('open');
+  document.getElementById('task-panel').classList.add('open');
+  // Auto-resize title textarea
+  const ta = document.getElementById('panel-title');
+  ta.style.height='auto'; ta.style.height=ta.scrollHeight+'px';
+}
+
+function closeTaskPanel(save) {
+  if(save) saveTaskPanel(true);
+  document.getElementById('panel-overlay').classList.remove('open');
+  document.getElementById('task-panel').classList.remove('open');
+  activePanelTaskId = null;
+}
+
+function saveTaskPanel(silent) {
+  if(!activePanelTaskId) return;
+  const t = state.tasks.find(x=>x.id===activePanelTaskId);
+  if(!t) return;
+  t.title = document.getElementById('panel-title').value.trim()||t.title;
+  t.desc = document.getElementById('panel-desc').value;
+  t.notes = document.getElementById('panel-notes').value;
+  t.nextActionText = document.getElementById('panel-na-text').value;
+  t.nextActionDate = document.getElementById('panel-na-date').value;
+  t.responsible = document.getElementById('panel-responsible').value;
+  t.category = document.getElementById('panel-category').value;
+  t.priority = document.getElementById('panel-priority').value;
+  saveState();
+  renderPlan();
+  if(!silent) { showToast('Task saved ✓'); }
+}
+
+function togglePanelComplete() {
+  if(!activePanelTaskId) return;
+  const t = state.tasks.find(x=>x.id===activePanelTaskId);
+  if(!t) return;
+  t.completed = !t.completed;
+  document.getElementById('panel-check').classList.toggle('done', t.completed);
+  saveState();
+  renderPlan();
+}
+
+function deleteTaskFromPanel() {
+  if(!activePanelTaskId) return;
+  if(!confirm('Delete this task? This cannot be undone.')) return;
+  state.tasks = state.tasks.filter(x=>x.id!==activePanelTaskId);
+  saveState();
+  renderPlan();
+  closeTaskPanel();
+  showToast('Task deleted.');
+}
+
+function addTaskToWeek(weekOffset) {
+  const id = crypto.randomUUID ? crypto.randomUUID() : Math.random().toString(36).slice(2);
+  const t = {
+    id, weekOffset, title:'New task', desc:'', notes:'', nextActionText:'', nextActionDate:'',
+    category:'general', priority:'medium', responsible:'', completed:false,
+    createdAt: new Date().toISOString(),
+  };
+  state.tasks.push(t);
+  saveState();
+  renderPlan();
+  openTaskPanel(id);
+}
+
+// ── Ops Tracker Picker ─────────────────────────────────
+function openOpsPickerModal() {
+  selectedOpsDeployKey = null;
+  document.getElementById('ops-overwrite-warning').style.display = 'none';
+  document.getElementById('ops-send-btn').disabled = true;
+  document.getElementById('ops-overwrite-confirm').checked = false;
+  const list = document.getElementById('ops-picker-list');
+  list.innerHTML = '<div style="color:#94a3b8;font-style:italic;font-size:.78rem">Scanning for Ops Tracker deployments…</div>';
+  document.getElementById('modal-ops-picker').classList.add('open');
+  setTimeout(scanForOpsDeployments, 200);
+}
+
+function scanForOpsDeployments() {
+  const list = document.getElementById('ops-picker-list');
+  const deployments = [];
+  // Scan localStorage for ops tracker data
+  for(let i=0; i<localStorage.length; i++) {
+    const key = localStorage.key(i);
+    if(key && key.includes('ops') && key.startsWith('eventhive_')) {
+      try {
+        const data = JSON.parse(localStorage.getItem(key)||'{}');
+        const name = data.eventName || key.replace(/^eventhive_/,'').replace(/_ops.*/,'') || key;
+        deployments.push({ key, name, taskCount: (data.tasks||[]).length, source:'local' });
+      } catch(e){}
+    }
+  }
+  // Also check for EVENTHIVE_CONFIG.linkedOpsInstances (hosted mode)
+  if(CFG.linkedOpsInstances && Array.isArray(CFG.linkedOpsInstances)) {
+    CFG.linkedOpsInstances.forEach(inst => {
+      deployments.push({ key: 'hosted:'+inst.id, name: inst.name||inst.id, taskCount: inst.taskCount||0, source:'hosted', instanceId: inst.id });
+    });
+  }
+  if(!deployments.length) {
+    list.innerHTML = '<div style="color:#94a3b8;font-size:.78rem;font-style:italic">No Ops Tracker deployments found.<br><span style="font-style:normal">Make sure your Ops Tracker is open in another tab, or configure a linked deployment.</span></div>';
+    return;
+  }
+  list.innerHTML = '';
+  deployments.forEach(d => {
+    const item = document.createElement('div');
+    item.className = 'ops-picker-item';
+    item.dataset.key = d.key;
+    item.innerHTML = `<div class="ops-picker-dot" style="background:${d.source==='hosted'?'#3b82f6':'#22c55e'}"></div><div class="ops-picker-name">${d.name}</div><div class="ops-picker-sub">${d.source==='hosted'?'Hosted':'Local'} · ${d.taskCount} tasks</div>`;
+    item.onclick = () => selectOpsDeployment(d.key, item, d.taskCount);
+    list.appendChild(item);
+  });
+}
+
+function selectOpsDeployment(key, el, taskCount) {
+  document.querySelectorAll('.ops-picker-item').forEach(i=>i.classList.remove('selected'));
+  el.classList.add('selected');
+  selectedOpsDeployKey = key;
+  const warn = document.getElementById('ops-overwrite-warning');
+  warn.style.display = taskCount > 0 ? 'block' : 'none';
+  document.getElementById('ops-overwrite-confirm').checked = false;
+  updateOpsSendBtn();
+}
+
+function updateOpsSendBtn() {
+  const confirm = document.getElementById('ops-overwrite-confirm');
+  const warn = document.getElementById('ops-overwrite-warning');
+  const hasWarning = warn.style.display !== 'none';
+  document.getElementById('ops-send-btn').disabled = !selectedOpsDeployKey || (hasWarning && !confirm.checked);
+}
+// Expose for inline onchange
+document.addEventListener('DOMContentLoaded',()=>{
+  const chk = document.getElementById('ops-overwrite-confirm');
+  if(chk) chk.addEventListener('change', updateOpsSendBtn);
+});
+
+function sendToOpsTracker() {
+  if(!selectedOpsDeployKey) return;
+  const tasks = state.tasks.map(t => ({
+    id: t.id, title: t.title, description: t.desc||'', stage: t.completed?'done':'todo',
+    category: t.category, priority: t.priority, responsible: t.responsible||'',
+    weekOffset: t.weekOffset, notes: t.notes||'', nextAction: t.nextActionText||'',
+    nextActionDate: t.nextActionDate||'',
+  }));
+  if(selectedOpsDeployKey.startsWith('hosted:')) {
+    showToast('Hosted sync not yet available — coming soon.');
+  } else {
+    try {
+      const existing = JSON.parse(localStorage.getItem(selectedOpsDeployKey)||'{}');
+      existing.tasks = tasks;
+      existing.lastSyncedFrom = 'countdown-planner';
+      existing.lastSyncedAt = new Date().toISOString();
+      localStorage.setItem(selectedOpsDeployKey, JSON.stringify(existing));
+      showToast('Tasks sent to Ops Tracker ✓');
+    } catch(e) { showToast('Error writing to Ops Tracker.'); }
+  }
+  closeModal('modal-ops-picker');
+}
+
+// ── Template Export ─────────────────────────────────────
+function openTemplateExportModal() {
+  document.getElementById('template-name-input').value = state.eventName ? state.eventName + ' Template' : 'Event Template';
+  document.getElementById('modal-template-export').classList.add('open');
+}
+
+function doExportTemplate() {
+  const name = document.getElementById('template-name-input').value.trim() || 'Event Template';
+  const template = {
+    _type: 'eventhive-countdown-template', _version: 1,
+    name, createdAt: new Date().toISOString(),
+    tasks: state.tasks.map(t => ({
+      title: t.title, desc: t.desc||'', category: t.category,
+      priority: t.priority, responsible: t.responsible||'', weekOffset: t.weekOffset
+    }))
+  };
+  const blob = new Blob([JSON.stringify(template,null,2)],{type:'application/json'});
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = name.toLowerCase().replace(/\s+/g,'-') + '.json';
+  document.body.appendChild(a);
+  a.click();
+  setTimeout(()=>{ document.body.removeChild(a); URL.revokeObjectURL(a.href); }, 150);
+  closeModal('modal-template-export');
+  showToast('Template exported ✓');
+}
+
+function importTemplate(input) {
+  const file = input.files[0]; if(!file) return;
+  const reader = new FileReader();
+  reader.onload = e => {
+    try {
+      const data = JSON.parse(e.target.result);
+      if(!data._type || data._type !== 'eventhive-countdown-template') { showToast('Invalid template file.'); return; }
+      if(!confirm('Import "' + (data.name||'template') + '"? This will fill the task list when you generate a plan. Set up event details on the next screen.')) return;
+      // Pre-fill setup and load tasks on generate
+      document.getElementById('event-name').value = data.name.replace(/\s*template.*/i,'').trim();
+      // Store pending import
+      window._pendingImport = data.tasks;
+      showToast('Template loaded — fill in event details and click Generate.');
+    } catch(err) { showToast('Could not read template file.'); }
+  };
+  reader.readAsText(file);
+  input.value = '';
+}
+
+// Override generatePlan to use pending import if set
+const _origGeneratePlan = generatePlan;
+window.generatePlan = function() {
+  if(window._pendingImport) {
+    const name = document.getElementById('event-name').value.trim();
+    const date = document.getElementById('event-date').value;
+    if(!name) { showToast('Please enter an event name.'); return; }
+    if(!date) { showToast('Please select an event date.'); return; }
+    const tasks = window._pendingImport.map(t => ({
+      id: crypto.randomUUID ? crypto.randomUUID() : Math.random().toString(36).slice(2),
+      ...t, completed:false, notes:'', nextActionText:'', nextActionDate:'', createdAt:new Date().toISOString()
+    }));
+    state = { eventName:name, eventDate:date, eventType:document.getElementById('event-type').value, tasks, generated:true };
+    window._pendingImport = null;
+    saveState(); showPlan();
+  } else { _origGeneratePlan(); }
+};
+
+// ── CSV Export ──────────────────────────────────────────
+function exportCSV() {
+  const rows = [['Week','Title','Category','Priority','Responsible','Status','Notes','Next Action']];
+  WEEK_DEFS.forEach(wk => {
+    state.tasks.filter(t=>t.weekOffset===wk.offset).forEach(t => {
+      rows.push([wk.title, t.title, t.category, t.priority, t.responsible||'', t.completed?'Done':'Open', (t.notes||'').replace(/\n/g,' '), t.nextActionText||'']);
+    });
+  });
+  const csv = rows.map(r=>r.map(c=>'"'+String(c).replace(/"/g,'""')+'"').join(',')).join('\n');
+  const blob = new Blob([csv],{type:'text/csv'});
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = (state.eventName||'event-plan').toLowerCase().replace(/\s+/g,'-') + '.csv';
+  document.body.appendChild(a);
+  a.click();
+  setTimeout(()=>{ document.body.removeChild(a); URL.revokeObjectURL(a.href); }, 150);
+}
+
+// ── Erleah Chat ─────────────────────────────────────────
+function toggleErleah() {
+  erleahOpen = !erleahOpen;
+  const panel = document.getElementById('erleah-panel');
+  panel.style.display = erleahOpen ? 'flex' : 'none';
+  if(erleahOpen && erleahHistory.length === 0) {
+    addErleahMsg('assistant', "Hi! I'm Erleah 👋 I can help you edit this plan — add tasks, remove irrelevant ones, or adjust priorities. What would you like to do?");
+  }
+  if(erleahOpen) setTimeout(()=>document.getElementById('erleah-input').focus(),100);
+}
+
+function addErleahMsg(role, text) {
+  const msgs = document.getElementById('erleah-messages');
+  const div = document.createElement('div');
+  div.className = 'erleah-msg ' + role;
+  div.textContent = text;
+  msgs.appendChild(div);
+  msgs.scrollTop = msgs.scrollHeight;
+  return div;
+}
+
+async function sendErleahMsg() {
+  const input = document.getElementById('erleah-input');
+  const msg = input.value.trim(); if(!msg) return;
+  input.value = '';
+  addErleahMsg('user', msg);
+  erleahHistory.push({role:'user',content:msg});
+  const loading = addErleahMsg('loading', 'Thinking…');
+  // Build compact task context (titles + week only, max 50 tasks)
+  const taskSummary = state.tasks.slice(0,50).map(t=>`[${t.weekOffset>0?'+'+t.weekOffset+'w':t.weekOffset+'w'}] ${t.completed?'✓':' '} ${t.title} (${t.category}/${t.priority})`).join('\n');
+  const toolContext = `Event: ${state.eventName} on ${state.eventDate}\nTotal tasks: ${state.tasks.length}\nSample tasks:\n${taskSummary}`;
+  try {
+    const res = await fetch('/api/erleah/chat', {
+      method:'POST', credentials:'include',
+      headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({
+        message: msg,
+        messages: erleahHistory.slice(-8),
+        toolContext,
+        pageContext: 'Event Countdown Planner — ' + state.eventName
+      })
+    });
+    const data = await res.json();
+    loading.remove();
+    const reply = data.response || data.message || 'Sorry, I couldn\'t respond right now.';
+    addErleahMsg('assistant', reply.replace(/<[^>]+>/g,''));
+    erleahHistory.push({role:'assistant',content:reply});
+  } catch(err) {
+    loading.remove();
+    addErleahMsg('assistant', 'Erleah AI is available on EventHive (eventhive.io). In standalone mode, try any AI assistant — just describe your event and ask for suggestions!');
+  }
+}
+
+// ── postMessage bridge ──────────────────────────────────
+function postMessageUpdate() {
+  try {
+    const summary = {
+      type:'countdown-planner-update', eventName:state.eventName, eventDate:state.eventDate,
+      total:state.tasks.length, done:state.tasks.filter(t=>t.completed).length
+    };
+    window.parent.postMessage(summary,'*');
+  } catch(e){}
+}
+
+// ── Utilities ───────────────────────────────────────────
+function closeModal(id) { document.getElementById(id).classList.remove('open'); }
+
+let _toastTimer;
+function showToast(msg) {
+  const t = document.getElementById('toast');
+  t.textContent = msg; t.classList.add('show');
+  clearTimeout(_toastTimer);
+  _toastTimer = setTimeout(()=>t.classList.remove('show'), 2800);
+}
+
+// ── Init ────────────────────────────────────────────────
+loadState();
+if(state.generated && state.tasks.length) {
+  // Restore existing plan
+  document.getElementById('event-name').value = state.eventName||'';
+  document.getElementById('event-date').value = state.eventDate||'';
+  document.getElementById('event-type').value = state.eventType||'conference';
+  showPlan();
+}
+</script>
+</body>
+</html>
