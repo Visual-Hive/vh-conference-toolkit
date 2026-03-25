@@ -68,15 +68,32 @@ fi
 ok "Docker is running."
 
 # ── Step 3: Port free? ───────────────────────────────────────────────────
-log "Step 3/5: Checking port $PORT..."
+log "Step 3/5: Finding available port (starting at $PORT)..."
+find_free_port() {
+  local p=$1
+  while [ $p -lt $(( $1 + 15 )) ]; do
+    lsof -Pi ":$p" -sTCP:LISTEN -t &>/dev/null 2>&1 || { echo $p; return; }
+    p=$(( p + 1 ))
+  done
+  echo ""
+}
 if lsof -Pi ":$PORT" -sTCP:LISTEN -t &>/dev/null 2>&1; then
-  BLOCKER=$(lsof -Pi ":$PORT" -sTCP:LISTEN 2>/dev/null | tail -1 || echo "unknown process")
-  fail "Port $PORT is already in use: $BLOCKER"
-  echo "  Stop that service, or set PORT=XXXX in .env to use a different port."
-  ask_claude "Port $PORT is already in use. Process: $BLOCKER"
-  exit 1
+  warn "Port $PORT is in use — scanning for a free port..."
+  FREE=$(find_free_port $PORT)
+  if [ -z "$FREE" ]; then
+    fail "No free ports found in range $PORT–$(( PORT + 14 )). Stop a service and retry."
+    exit 1
+  fi
+  PORT=$FREE
+  # Persist chosen port back to .env (create if missing)
+  if [ -f "$ENV_FILE" ]; then
+    grep -v "^PORT=" "$ENV_FILE" > /tmp/vh-env.tmp && mv /tmp/vh-env.tmp "$ENV_FILE" || true
+  fi
+  echo "PORT=$PORT" >> "$ENV_FILE"
+  ok "Port $PORT is free — saved to .env"
+else
+  ok "Port $PORT is free."
 fi
-ok "Port $PORT is free."
 
 # ── Step 4: Data directory ───────────────────────────────────────────────
 log "Step 4/5: Setting up data storage..."
@@ -130,6 +147,9 @@ echo -e "   🔖  ${BOLD}Bookmark:${NC} $URL"
 echo -e "   ↩️   ${BOLD}To reopen later:${NC} double-click ${BOLD}'Open Ops Tracker.command'${NC} (Mac/Linux)"
 echo -e "        or ${BOLD}'Open Ops Tracker.bat'${NC} (Windows)"
 echo ""
+
+# Clear macOS quarantine from the launcher so future double-clicks work without warning
+xattr -d com.apple.quarantine "$SCRIPT_DIR/Open Ops Tracker.command" 2>/dev/null || true
 
 # Auto-open browser
 if command -v open &>/dev/null; then open "$URL"

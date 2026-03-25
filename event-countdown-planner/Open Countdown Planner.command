@@ -1,6 +1,9 @@
 #!/usr/bin/env bash
 # Open Countdown Planner — double-click this to reopen the app
 SCRIPT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
+# Self-heal: remove macOS quarantine so future double-clicks work without a security warning
+xattr -d com.apple.quarantine "$0" 2>/dev/null || true
+
 
 # If Ops Tracker running on 8080, that already has our data
 if curl -sf "http://localhost:8080/api/local/countdown_state" &>/dev/null 2>&1; then
