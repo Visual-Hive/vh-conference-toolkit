@@ -169,6 +169,8 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
     <div><div class="header-company">Conference Toolkit</div><div class="header-meta" id="header-meta">Event Countdown Planner</div></div>
   </div>
   <div class="header-right" id="header-right">
+    <span id="mode-sep" style="display:none;color:rgba(255,255,255,.35);margin:0 .3rem">|</span>
+    <span id="mode-badge" style="font-size:.68rem;opacity:.9;white-space:nowrap"></span>
     <button class="btn btn-white btn-sm" onclick="window.print()">🖨 Print</button>
   </div>
 </header>
@@ -374,6 +376,142 @@ const EVENTHIVE_CONFIG = {};
 const CFG = EVENTHIVE_CONFIG;
 const LS_KEY = 'eventhive_countdown_' + (CFG.instanceId || 'default');
 
+// ── Storage service layer ────────────────────────────────────────────────
+// Priority: LocalFileService (ops-tracker:8080) → LocalFileService (:8081)
+//           → IndexedDB → localStorage
+
+let dataService = null;
+let currentMode = 'browser'; // 'local-file-shared' | 'local-file' | 'idb' | 'browser'
+
+class LocalFileService {
+    constructor(apiBase, resource) {
+        this.apiBase = apiBase;
+        this.resource = resource;
+        this._recordId = 1;
+        this._saving = false;
+        this._pendingSave = null;
+    }
+    async healthCheck() {
+        try {
+            const sig = typeof AbortSignal !== 'undefined' && AbortSignal.timeout ? AbortSignal.timeout(1500) : undefined;
+            const res = await fetch(this.apiBase + '/' + this.resource, sig ? { signal: sig } : {});
+            return { ok: res.ok };
+        } catch { return { ok: false }; }
+    }
+    async load() {
+        const res = await fetch(this.apiBase + '/' + this.resource + '/' + this._recordId);
+        if (res.status === 404) return null;
+        if (!res.ok) throw new Error('Local API error ' + res.status);
+        const rec = await res.json();
+        const { id, ...data } = rec;
+        if (!data.tasks) return null;
+        return data;
+    }
+    save(state) {
+        this._pendingSave = state;
+        if (!this._saving) this._flush();
+    }
+    async _flush() {
+        this._saving = true;
+        while (this._pendingSave) {
+            const toSave = this._pendingSave;
+            this._pendingSave = null;
+            try {
+                let res = await fetch(this.apiBase + '/' + this.resource + '/' + this._recordId, {
+                    method: 'PUT', headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ id: this._recordId, ...toSave })
+                });
+                if (res.status === 404) {
+                    await fetch(this.apiBase + '/' + this.resource, {
+                        method: 'POST', headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ id: this._recordId, ...toSave })
+                    });
+                }
+            } catch(e) { /* silent */ }
+        }
+        this._saving = false;
+    }
+}
+
+class IndexedDBService {
+    constructor() { this._db = null; }
+    async _open() {
+        if (this._db) return this._db;
+        return new Promise((resolve, reject) => {
+            const req = indexedDB.open('vh_countdown', 1);
+            req.onupgradeneeded = e => e.target.result.createObjectStore('state');
+            req.onsuccess = e => { this._db = e.target.result; resolve(this._db); };
+            req.onerror = e => reject(e.target.error);
+        });
+    }
+    async load() {
+        const db = await this._open();
+        return new Promise((resolve, reject) => {
+            const req = db.transaction('state', 'readonly').objectStore('state').get('main');
+            req.onsuccess = e => resolve(e.target.result || null);
+            req.onerror = e => reject(e.target.error);
+        });
+    }
+    save(state) { this._write(state); }
+    async _write(state) {
+        try {
+            const db = await this._open();
+            await new Promise((resolve, reject) => {
+                const req = db.transaction('state', 'readwrite').objectStore('state').put(state, 'main');
+                req.onsuccess = () => resolve();
+                req.onerror = e => reject(e.target.error);
+            });
+        } catch(e) { console.warn('IDB write failed:', e); }
+    }
+}
+
+async function initDataService() {
+    // 1. Ops Tracker Docker on port 8080 — shared storage, no extra setup needed
+    try {
+        const svc = new LocalFileService('http://localhost:8080/api/local', 'countdown_state');
+        if ((await svc.healthCheck()).ok) { dataService = svc; currentMode = 'local-file-shared'; }
+    } catch(e) {}
+    // 2. Standalone countdown Docker on port 8081
+    if (!dataService) {
+        try {
+            const svc = new LocalFileService('http://localhost:8081/api/local', 'countdown_state');
+            if ((await svc.healthCheck()).ok) { dataService = svc; currentMode = 'local-file'; }
+        } catch(e) {}
+    }
+    // 3. IndexedDB — survives cache clears, much better than localStorage
+    if (!dataService) {
+        try {
+            const svc = new IndexedDBService();
+            await svc._open();
+            dataService = svc; currentMode = 'idb';
+        } catch(e) {}
+    }
+    // 4. localStorage fallback
+    if (!dataService) { currentMode = 'browser'; }
+    updateModeBadge();
+}
+
+function updateModeBadge() {
+    const badge = document.getElementById('mode-badge');
+    const sep   = document.getElementById('mode-sep');
+    if (!badge) return;
+    if (currentMode === 'local-file-shared') {
+        badge.textContent = '🟢 Saved to Ops Tracker storage';
+        badge.title = 'Plans saved to event-ops-tracker/data/db.json on your computer';
+    } else if (currentMode === 'local-file') {
+        badge.textContent = '🟢 Saved to local file';
+        badge.title = 'Plans saved to ./data/db.json on your computer';
+    } else if (currentMode === 'idb') {
+        badge.textContent = '🟡 Saved in browser (IndexedDB)';
+        badge.title = 'Plans saved in IndexedDB — safe from cache clears. Run setup.sh for file-based storage.';
+    } else {
+        badge.textContent = '🟡 Browser storage only';
+        badge.title = 'Plans saved in localStorage. Run setup.sh for persistent file storage.';
+    }
+    if (sep) sep.style.display = '';
+}
+
+
 // ── State ─────────────────────────────────────────────
 let state = { eventName:'', eventDate:'', eventType:'', tasks:[], generated:false };
 let activePanelTaskId = null;
@@ -476,11 +614,19 @@ const TYPE_EXTRAS = {
 };
 // ── Persistence ────────────────────────────────────────
 function saveState() {
-  localStorage.setItem(LS_KEY, JSON.stringify(state));
+  if (dataService) {
+    dataService.save(state);
+  } else {
+    try { localStorage.setItem(LS_KEY, JSON.stringify(state)); } catch(e) {}
+  }
   postMessageUpdate();
 }
-function loadState() {
-  try { const s = localStorage.getItem(LS_KEY); if(s) state = JSON.parse(s); } catch(e){}
+async function loadState() {
+  if (dataService) {
+    try { const s = await dataService.load(); if (s) state = s; } catch(e) {}
+  } else {
+    try { const s = localStorage.getItem(LS_KEY); if(s) state = JSON.parse(s); } catch(e) {}
+  }
 }
 
 // ── Generate Plan ───────────────────────────────────────
@@ -957,14 +1103,16 @@ function showToast(msg) {
 }
 
 // ── Init ────────────────────────────────────────────────
-loadState();
-if(state.generated && state.tasks.length) {
-  // Restore existing plan
-  document.getElementById('event-name').value = state.eventName||'';
-  document.getElementById('event-date').value = state.eventDate||'';
-  document.getElementById('event-type').value = state.eventType||'conference';
-  showPlan();
-}
+initDataService().then(async () => {
+  await loadState();
+  if(state.generated && state.tasks.length) {
+    // Restore existing plan
+    document.getElementById('event-name').value = state.eventName||'';
+    document.getElementById('event-date').value = state.eventDate||'';
+    document.getElementById('event-type').value = state.eventType||'conference';
+    showPlan();
+  }
+});
 </script>
 </body>
 </html>
